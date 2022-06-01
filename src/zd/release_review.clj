@@ -69,11 +69,14 @@
   "Get a number from the braces [<project name>#number].
    TODO: incapsulate getting of issue numbers."
   [commit]
-  (some->> (get-in commit [:commit :message])
-           (re-matches #"(\[.*\])\s?.*")
-           last
-           (re-matches #"\[(.*\#)(.*)\]")
-           last))
+  (let [message (if (= (type commit) java.lang.String)
+                  commit
+                  (get-in commit [:commit :message]))]
+      (some->> message
+               (re-matches #"(\[.*\])\s?.*")
+               last
+               (re-matches #"\[(.*\#)(.*)\]")
+               last)))
 
 
 (defn list-files
@@ -123,15 +126,13 @@
 
 (defn make-patches-block
   "A block of changes from other commits (for files related to this one)."
-  [filename patches exclude-commit-sha]
-  (into [:div]
-        (map #(if (or (nil? (:patch %))
-                      (= (:sha %) exclude-commit-sha))
-                [:div]
-                [:div
-                 [:p "from commit: " (:message %)]
-                 [:div {:class "diff-element"}
-                  (make-diff filename (:patch %))]])) patches))
+  [filename patches exclude-issue-number]
+  (let [filtered (filter #(or (nil? (:patch %))
+                              (not= (get-issue-number (:message %)) exclude-issue-number))
+                         patches)]
+    (map #(conj [:div [:p "from commit: " (:message %)]]
+                (conj [:div {:class "diff-element"}]
+                      (make-diff filename (:patch %)))) filtered)))
 
 
 (defn make-diff-from-patches
@@ -143,6 +144,7 @@
   [commit other-changes?]
   (let [commit-sha           (:sha commit)
         commit-message       (get-in commit [:commit :message])
+        issue-number         (get-issue-number commit)
         all-files            (:all-changed-files commit)
         groupped-by-filename (group-by :filename all-files)
         commit-files         (get (group-by :sha all-files) commit-sha)]
@@ -156,7 +158,7 @@
          (str "show files")]
         [:div {:id    commit-sha
                :style "display:none"}
-         (map #(make-patches-block % (get groupped-by-filename %) commit-sha)
+         (map #(make-patches-block % (get groupped-by-filename %) issue-number)
               (map :filename commit-files))]]
        [:div])]))
 
