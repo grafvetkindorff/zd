@@ -106,13 +106,47 @@
     [:style (garden.core/css common-style)]
     [:meta {:charset "UTF-8"}]
     [:link {:href "//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/styles/default.min.css", :rel "stylesheet"}]
+    [:link {:href "//cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css", :rel "stylesheet"}]
     [:link  {:href "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"  :rel "stylesheet"}]
     [:script {:src "//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/highlight.min.js"}]
     [:script {:src "//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/languages/clojure.min.js"}]
+    [:script {:src "//cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html-ui.min.js"}]
     [:script {:src "/js/d3.js"}]
     [:script {:src "/js/mindmap.js"}]
     [:script {:src "/js/zendoc.js"}]
-    [:script "hljs.highlightAll()"]]
+    [:script "hljs.highlightAll()"]
+    [:script
+     "document.addEventListener('DOMContentLoaded', function () {
+        var diffs = document.getElementsByClassName('diff-element');
+
+        var configuration = {
+          drawFileList: true,
+          fileListToggle: true,
+          fileListStartVisible: false,
+          fileContentToggle: true,
+          matching: 'lines',
+          outputFormat: 'side-by-side',
+          synchronisedScroll: true,
+          highlight: true,
+          renderNothingWhenEmpty: false,
+        };
+
+        for(var counter = 0; counter < diffs.length; counter++) {
+          var diff2htmlUi = new Diff2HtmlUI(diffs[counter], diffs[counter].textContent, configuration);
+          diff2htmlUi.draw();
+          diff2htmlUi.highlightCode();
+        }
+      });
+
+      function toggle(element_id) {
+        var element = document.getElementById(element_id);
+
+        if (element.style.display == 'block') {
+          element.style.display = 'none';
+        } else {
+          element.style.display = 'block';
+        }
+      }"]]
    [:body {:class (c {:background-color "#F4F7F9" :overflow "hidden" :height "100vh"}  :w-max-full)}
     [:div#overlay
      {:class (c :fixed [:top 0] [:left 0] :h-min-full :w-min-full :overflow-y-hidden

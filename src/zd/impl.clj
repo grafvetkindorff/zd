@@ -9,6 +9,7 @@
    [clojure.pprint]
    [markdown.core]
    [cheshire.core]
+   [zd.release-review :as rr]
    [zd.methods :refer [annotation inline-method inline-function render-block render-content render-key process-block key-data]]))
 
 (defmethod annotation :collapse
@@ -435,6 +436,28 @@
         [:a {:href (str "#" (str/join (:path b))) :class (c [:text :blue-600])}
          (or (get-in b [:annotations :title])
              (capitalize (name (last (:path b)))))]]))])
+
+
+(defmethod render-key
+  [:github-release-review]
+  [_ {link :data}]
+  (let [api-link               (str (rr/get-api-link link "commits"))
+        commits                (rr/gather-pages (str api-link "?since=" (rr/days-ago 30)) true)
+        commits-with-files     (map rr/list-files commits)
+        all-files              (reduce into (map :changed-files commits-with-files))
+        commits-with-all-files (map #(assoc % :all-changed-files all-files) commits-with-files)
+        issue-commits          (filter #(not (nil? (rr/get-issue-number %))) commits-with-all-files)
+        non-issue-commits      (filter #(nil? (rr/get-issue-number %)) commits-with-all-files)
+        issue-numbers          (distinct (map rr/get-issue-number issue-commits))]
+    (if (empty? commits)
+      [:div "There is nothing to show..."]
+      [:div
+       [:p "Here is a list of issues with related commits made during the last month."]
+       [:p "See more detailed information: "
+        [:a {:href   link
+             :target "_blank"} "[github link]"]]
+       (map #(rr/draw-issue % issue-commits) issue-numbers)
+       (rr/draw-commits-block "Non-issues changes" non-issue-commits false false)])))
 
 
 (defmethod process-block "table" [ztx _ _ args]
